@@ -1,0 +1,27 @@
+[general] 
+creator=R package 'raster' 
+created= 2012-10-09 01:49:35 
+[georeference] 
+nrows= 64 
+ncols= 56 
+xmin= 523900.453205175 
+ymin= 5622610.68929959 
+xmax= 803900.453205175 
+ymax= 5942610.68929959 
+projection= +proj=utm +zone=31 +datum=WGS84 +units=m +no_defs +ellps=WGS84 +towgs84=0,0,0 
+[data] 
+datatype= FLT4S 
+byteorder= little 
+nbands= 4 
+bandorder= BIL 
+categorical= FALSE 
+minvalue= -0.198683485388756:-0.217826098203659:-0.193841487169266:-0.134128242731094 
+maxvalue= 0.599534451961517:0.753618896007538:0.817669093608856:0.833849251270294 
+nodatavalue= -3.4e+38 
+[legend] 
+legendtype=  
+values=  
+color=  
+[description] 
+layername= Seasonal_EVI_4:Seasonal_NDVI_1:Seasonal_NDVI_2:Seasonal_NDVI_3 
+history=  

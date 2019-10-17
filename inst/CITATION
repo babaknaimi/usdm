@@ -1,0 +1,10 @@
+bibentry(
+     bibtype = "Article",
+     title = "Where is positional uncertainty a problem for species distribution modelling",
+     author = as.person("Babak Naimi [aut], Nicholas a.s. Hamm [aut], Thomas A. Groen [aut], Andrew K. Skidmore [aut], Albertus G. Toxopeus [aut]"),
+     year = "2014",
+     journal = "Ecography",
+     volume = "37",
+     pages = "191-203",
+     doi = "10.1111/j.1600-0587.2013.00205.x"
+   )

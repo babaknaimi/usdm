@@ -1,0 +1,7 @@
+import("methods")
+importFrom("graphics", "boxplot", "legend", "par", "plot", "points")
+importFrom("stats", "as.formula", "cor", "lm", "na.omit", "quantile","var")
+importFrom("raster", as.data.frame,ncell,res,cellStats,raster,xmin,xmax,ymin,ymax,brick,cellFromXY,nlayers,addLayer)
+importFrom("sp", bbox, coordinates)
+exportClasses(speciesLISA, VIF)
+exportMethods(exclude, lisa, speciesLisa, vif, vifcor, vifstep,Variogram)

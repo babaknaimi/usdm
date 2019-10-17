@@ -1,0 +1,27 @@
+[general] 
+creator=R package 'raster' 
+created= 2012-10-11 21:44:29 
+[georeference] 
+nrows= 30 
+ncols= 29 
+xmin= 319375 
+ymin= 4449936 
+xmax= 609375 
+ymax= 4749936 
+projection= NA 
+[data] 
+datatype= FLT4S 
+byteorder= little 
+nbands= 10 
+bandorder= BIL 
+categorical= FALSE 
+minvalue= 65.4027786254883:83.9027786254883:34.0902786254883:4884.1181640625:228.1875:-47.9097213745117:221.138885498047:36.3333320617676:31.6805553436279:144.347229003906 
+maxvalue= 145.16667175293:120.173614501953:39.9444427490234:6740.22900390625:320.097229003906:21.5694446563721:310.958343505859:156.1875:234.347229003906:234.347229003906 
+nodatavalue= -3.4e+38 
+[legend] 
+legendtype=  
+values=  
+color=  
+[description] 
+layername= Bio1:Bio2:Bio3:Bio4:Bio5:Bio6:Bio7:Bio8:Bio9:Bio10 
+history=  
