@@ -1,6 +1,7 @@
 # Author: Babak Naimi, naimi.b@gmail.com
 # Date :  Sep. 2012
-# Version 1.1
+# Last Update :  June 2023
+# Version 1.2
 # Licence GPL v3
 
 .level <- function(levels) {
@@ -84,7 +85,7 @@ if (!isGeneric("plot")) {
 setMethod("plot", signature(x='speciesLISA',y="SpatialPolygons"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
             if (missing(xyLegend)) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 | class(xyLegend) != 'numeric') xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            
@@ -96,7 +97,7 @@ setMethod("plot", signature(x='speciesLISA',y="SpatialPolygons"),
 setMethod("plot", signature(x='speciesLISA',y="SpatialPolygonsDataFrame"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
             if (missing(xyLegend)) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 | class(xyLegend) != 'numeric') xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            
@@ -108,7 +109,7 @@ setMethod("plot", signature(x='speciesLISA',y="SpatialPolygonsDataFrame"),
 setMethod("plot", signature(x='speciesLISA',y="missing"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
             if (missing(xyLegend)) xyLegend <- c(bbox(x@species)[1,2] - (bbox(x@species)[1,2]-bbox(x@species)[1,1]) * 0.16,bbox(x@species)[2,1] + (bbox(x@species)[2,2]-bbox(x@species)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 | class(xyLegend) != 'numeric') xyLegend <- c(bbox(x@species)[1,2] - (bbox(x@species)[1,2]-bbox(x@species)[1,1]) * 0.16,bbox(x@species)[2,1] + (bbox(x@species)[2,2]-bbox(x@species)[2,1]) * 0.25)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend, 'numeric')) xyLegend <- c(bbox(x@species)[1,2] - (bbox(x@species)[1,2]-bbox(x@species)[1,1]) * 0.16,bbox(x@species)[2,1] + (bbox(x@species)[2,2]-bbox(x@species)[2,1]) * 0.25)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            

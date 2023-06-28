@@ -1,7 +1,7 @@
 # Author: Babak Naimi, naimi.b@gmail.com
-# Date :  March 2013
-# Last update: Oct. 2019
-# Version 1.4
+# Date :  Oct. 2019
+# Last update: June 2023
+# Version 1.5
 # Licence GPL v3
 
 .vif <- function(y) {
@@ -29,7 +29,32 @@
   w <- which.max(k)
   c(rownames(k)[((w%/%nrow(k))+1)],colnames(k)[w%%nrow(k)])
 }
-
+#---
+# it checks the correlation and if both of the variables in the pair with max-Cor are in keep, it 
+# goes to next order of maximum correlation until a pair with at least one of them not in keep is selected
+.maxCor2 <- function(k,keep){
+  k <- abs(k)
+  n <- nrow(k)
+  for (i in 1:n) k[i:n,i] <- NA
+  #w <- which.max(k)
+  o <- order(k,decreasing = TRUE)
+  w <- o[1]
+  vn <- c(rownames(k)[((w%/%nrow(k))+1)],colnames(k)[w%%nrow(k)])
+  if (all(vn %in% keep)) {
+    LOOP <-TRUE
+    j <- 2
+    while(LOOP) {
+      w <- o[j]
+      vn <- c(rownames(k)[((w%/%nrow(k))+1)],colnames(k)[w%%nrow(k)])
+      if (all(vn %in% keep) && j < length(o)) j <- j+1
+      else LOOP <- FALSE
+    }
+    return (list(variables=vn,warning_level=j))
+  } else {
+    return(vn)
+  }
+  
+}
 
 
 .minCor <- function(k){
@@ -46,67 +71,172 @@
 }
 #-----------------
 if (!isGeneric("vif")) {
-  setGeneric("vif", function(x, ...)
+  setGeneric("vif", function(x,size, ...)
     standardGeneric("vif"))
 }  
 setMethod('vif', signature(x='RasterStackBrick'),
-          function(x, maxobservations=5000) {
+          function(x, size) {
             if (nlayers(x) == 1) stop("The Raster object should have at least two layers")
-            x <- as.data.frame(x)
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- sampleRandom(x,size,na.rm=TRUE)
+            
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
             v <- .vif(x)
+            
             data.frame(Variables=names(v),VIF=as.vector(v))
           }
 )
-
+#-----
+setMethod('vif', signature(x='SpatRaster'),
+          function(x, size) {
+            if (nlyr(x) == 1) stop("The Raster object should have at least two layers")
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- spatSample(x,size,na.rm=TRUE)
+            
+            x <- na.omit(x)
+            v <- .vif(x)
+            
+            data.frame(Variables=names(v),VIF=as.vector(v))
+          }
+)
 setMethod('vif', signature(x='data.frame'),
-          function(x, maxobservations=5000) {
+          function(x, size) {
             if (ncol(x) == 1) stop("At least two variables are needed to quantify vif")
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            if (missing(size)) {
+              if (nrow(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
             v <- .vif(x)
             data.frame(Variables=names(v),VIF=as.vector(v))
           }
 )
 
 setMethod('vif', signature(x='matrix'),
-          function(x, maxobservations=5000) {
+          function(x, size) {
             if (ncol(x) == 1) stop("At least two variables are needed to quantify vif")
+            
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            if (missing(size)) {
+              if (nrow(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
+            
             v <- .vif(x)
             data.frame(Variables=names(v),VIF=as.vector(v))
           }
 )
 
 if (!isGeneric("vifcor")) {
-  setGeneric("vifcor", function(x, th= 0.9, ...)
+  setGeneric("vifcor", function(x, th= 0.9,keep=NULL, size, method='pearson',...)
     standardGeneric("vifcor"))
 }  
 setMethod('vifcor', signature(x='RasterStackBrick'),
-          function(x, th=0.9, method='pearson', maxobservations=5000) {
+          function(x, th=0.9, keep=NULL, size, method='pearson') {
             if (nlayers(x) == 1) stop("The Raster object should have at least two layers")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
-            LOOP <- TRUE
-            x <- as.data.frame(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- sampleRandom(x,size,na.rm=TRUE)
+            
             x <- na.omit(x)
+            
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and nlyr(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x dataset!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            .warn <- FALSE
+            
+            LOOP <- TRUE
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              xcor <- abs(cor(x, method=method))
-              mx <- .maxCor(xcor)
-              if (xcor[mx[1],mx[2]] >= th) {
-                w1 <- which(colnames(xcor) == mx[1])
-                w2 <- which(rownames(xcor) == mx[2])
-                v <- .vif2(x,c(w1,w2))
-                ex <- mx[which.max(v[mx])]
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP <- FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor(xcor)
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  v <- .vif2(x,c(w1,w2))
+                  ex <- mx[which.max(v[mx])]
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
+            } else {
+              
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor2(xcor,keep=keep)
+                if (is.list(mx)) {
+                  .warn <- TRUE
+                  mx <- mx[[1]]
+                }
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  if (any(mx %in% keep)) {
+                    ex <- mx[!mx %in% keep]
+                  } else {
+                    v <- .vif2(x,c(w1,w2))
+                    ex <- mx[which.max(v[mx])]
+                  }
+                  
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
             }
+            
+            if (.warn) {
+              if (length(keep) > 2) warning('At least two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+              else warning('The two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+            }
+            #---
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
             n@corMatrix <- cor(x, method=method)
@@ -114,29 +244,96 @@ setMethod('vifcor', signature(x='RasterStackBrick'),
             n
           }
 )
-
-setMethod('vifcor', signature(x='data.frame'),
-          function(x, th=0.9, method='pearson', maxobservations=5000) {
-            if (ncol(x) == 1) stop("The Raster object should have at least two layers")
+#-------
+setMethod('vifcor', signature(x='SpatRaster'),
+          function(x, th=0.9, keep=NULL, size, method='pearson') {
+            if (nlyr(x) == 1) stop("The Raster object should have at least two layers")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
-            LOOP <- TRUE
+            
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- spatSample(x,size,na.rm=TRUE)
+            
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and nlyr(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x dataset!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            
+            .warn <- FALSE
+            
+            LOOP <- TRUE
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              xcor <- abs(cor(x, method=method))
-              mx <- .maxCor(xcor)
-              if (xcor[mx[1],mx[2]] >= th) {
-                w1 <- which(colnames(xcor) == mx[1])
-                w2 <- which(rownames(xcor) == mx[2])
-                v <- .vif2(x,c(w1,w2))
-                ex <- mx[which.max(v[mx])]
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP <- FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor(xcor)
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  v <- .vif2(x,c(w1,w2))
+                  ex <- mx[which.max(v[mx])]
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
+            } else {
+              
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor2(xcor,keep=keep)
+                if (is.list(mx)) {
+                  .warn <- TRUE
+                  mx <- mx[[1]]
+                }
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  if (any(mx %in% keep)) {
+                    ex <- mx[!mx %in% keep]
+                  } else {
+                    v <- .vif2(x,c(w1,w2))
+                    ex <- mx[which.max(v[mx])]
+                  }
+                  
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
             }
+            
+            if (.warn) {
+              if (length(keep) > 2) warning('At least two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+              else warning('The two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+            }
+            #---
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
             n@corMatrix <- cor(x, method=method)
@@ -144,30 +341,195 @@ setMethod('vifcor', signature(x='data.frame'),
             n
           }
 )
+#----------
+setMethod('vifcor', signature(x='data.frame'),
+          function(x, th=0.9, keep=NULL, size, method='pearson') {
+            if (ncol(x) == 1) stop("The data.frame should have at least two columns")
+            if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
+            
+            x <- na.omit(x)
+            
+            if (missing(size)) {
+              if (nrow(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
+            #----
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and ncol(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            .warn <- FALSE
+            
+            LOOP <- TRUE
+            n <- new("VIF")
+            n@variables <- colnames(x)
+            exc <- c()
+            if (is.null(keep)) {
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor(xcor)
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  v <- .vif2(x,c(w1,w2))
+                  ex <- mx[which.max(v[mx])]
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
+            } else {
+              
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor2(xcor,keep=keep)
+                if (is.list(mx)) {
+                  .warn <- TRUE
+                  mx <- mx[[1]]
+                }
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  if (any(mx %in% keep)) {
+                    ex <- mx[!mx %in% keep]
+                  } else {
+                    v <- .vif2(x,c(w1,w2))
+                    ex <- mx[which.max(v[mx])]
+                  }
+                  
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
+            }
+            
+            if (.warn) {
+              if (length(keep) > 2) warning('At least two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+              else warning('The two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+            }
+            #---
+            if (length(exc) > 0) n@excluded <- exc
+            v <- .vif(x)
+            n@corMatrix <- cor(x, method=method)
+            n@results <- data.frame(Variables=names(v),VIF=as.vector(v))
+            n
+          }
+)
+#--------
 
 setMethod('vifcor', signature(x='matrix'),
-          function(x, th=0.9, method='pearson', maxobservations=5000) {
-            if (ncol(x) == 1) stop("The Raster object should have at least two layers")
+          function(x, th=0.9, keep=NULL, size, method='pearson') {
+            if (ncol(x) == 1) stop("The matrix should have at least two columns")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
-            LOOP <- TRUE
+            
             x <- as.data.frame(x)
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            if (missing(size)) {
+              if (nrow(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
+            #----
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and ncol(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            .warn <- FALSE
+            
+            LOOP <- TRUE
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              xcor <- abs(cor(x, method=method))
-              mx <- .maxCor(xcor)
-              if (xcor[mx[1],mx[2]] >= th) {
-                w1 <- which(colnames(xcor) == mx[1])
-                w2 <- which(rownames(xcor) == mx[2])
-                v <- .vif2(x,c(w1,w2))
-                ex <- mx[which.max(v[mx])]
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP <- FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor(xcor)
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  v <- .vif2(x,c(w1,w2))
+                  ex <- mx[which.max(v[mx])]
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
+            } else {
+              
+              while (LOOP) {
+                xcor <- abs(cor(x, method=method))
+                mx <- .maxCor2(xcor,keep=keep)
+                if (is.list(mx)) {
+                  .warn <- TRUE
+                  mx <- mx[[1]]
+                }
+                if (xcor[mx[1],mx[2]] >= th) {
+                  w1 <- which(colnames(xcor) == mx[1])
+                  w2 <- which(rownames(xcor) == mx[2])
+                  if (any(mx %in% keep)) {
+                    ex <- mx[!mx %in% keep]
+                  } else {
+                    v <- .vif2(x,c(w1,w2))
+                    ex <- mx[which.max(v[mx])]
+                  }
+                  
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP <- FALSE
+              }
             }
+            
+            if (.warn) {
+              if (length(keep) > 2) warning('At least two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+              else warning('The two variables specified in "keep" are strongly correlated (i.e., are subjected to the collinearity issue)!')
+            }
+            #---
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
             n@corMatrix <- cor(x, method=method)
@@ -175,31 +537,77 @@ setMethod('vifcor', signature(x='matrix'),
             n
           }
 )
+########################################
 
 if (!isGeneric("vifstep")) {
-  setGeneric("vifstep", function(x, th= 10, ...)
+  setGeneric("vifstep", function(x, th= 10,keep=NULL, size, method='pearson',...)
     standardGeneric("vifstep"))
 }
 
 setMethod('vifstep', signature(x='RasterStackBrick'),
-          function(x, th=10, method='pearson', maxobservations=5000) {
+          function(x, th=10, keep=NULL, size, method='pearson') {
             if (nlayers(x) == 1) stop("The Raster object should have at least two layers!")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
-            LOOP <- TRUE
-            x <- as.data.frame(x)
+            
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- sampleRandom(x,size,na.rm=TRUE)
+            
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and nlyr(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x dataset!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            LOOP <- TRUE
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              v <- .vif(x)
-              if (v[which.max(v)] >= th) {
-                ex <- names(v[which.max(v)])
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP=FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                v <- .vif(x)
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
+            } else {
+              while (LOOP) {
+                v <- .vif(x)
+                v <- v[!names(v) %in% keep]
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
             }
+            #---
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
             n@corMatrix <- cor(x, method=method)
@@ -209,22 +617,66 @@ setMethod('vifstep', signature(x='RasterStackBrick'),
 )
 
 setMethod('vifstep', signature(x='data.frame'),
-          function(x, th=10, method='pearson', maxobservations=5000) {
+          function(x, th=10, keep=NULL, size, method='pearson') {
             if (ncol(x) == 1) stop("The data.frame should have at least two variables!")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
+            
+            if (missing(size)) {
+              if (nrow(x) < 6000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
+            #----
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and ncol(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            
             LOOP <- TRUE
-            x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              v <- .vif(x)
-              if (v[which.max(v)] >= th) {
-                ex <- names(v[which.max(v)])
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP=FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                v <- .vif(x)
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
+            } else {
+              while (LOOP) {
+                v <- .vif(x)
+                v <- v[!names(v) %in% keep]
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
             }
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
@@ -235,23 +687,70 @@ setMethod('vifstep', signature(x='data.frame'),
 )
 
 setMethod('vifstep', signature(x='matrix'),
-          function(x, th=10, method='pearson', maxobservations=5000) {
-            if (ncol(x) == 1) stop("The matrix  should have at least two columns (variables)!")
+          function(x, th=10, keep=NULL, size, method='pearson') {
+            if (ncol(x) == 1) stop("The matrix should have at least two columns (variables)!")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
-            LOOP <- TRUE
+            
             x <- as.data.frame(x)
             x <- na.omit(x)
-            if(nrow(x) > maxobservations) x <- x[sample(1:nrow(x),maxobservations),]
+            
+            if (missing(size)) {
+              if (nrow(x) < 6000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (!is.null(size)) {
+              if(nrow(x) > size) x <- x[sample(1:nrow(x),size),]
+            }
+            #----
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and ncol(x)), so they are ignored!')
+                }
+                keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            LOOP <- TRUE
+            
             n <- new("VIF")
             n@variables <- colnames(x)
             exc <- c()
-            while (LOOP) {
-              v <- .vif(x)
-              if (v[which.max(v)] >= th) {
-                ex <- names(v[which.max(v)])
-                exc <- c(exc,ex)
-                x <- x[,-which(colnames(x) == ex)]
-              } else LOOP=FALSE
+            if (is.null(keep)) {
+              while (LOOP) {
+                v <- .vif(x)
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
+            } else {
+              while (LOOP) {
+                v <- .vif(x)
+                v <- v[!names(v) %in% keep]
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
             }
             if (length(exc) > 0) n@excluded <- exc
             v <- .vif(x)
@@ -260,4 +759,79 @@ setMethod('vifstep', signature(x='matrix'),
             n
           }
 )
+#------------
+
+
+setMethod('vifstep', signature(x='SpatRaster'),
+          function(x, th=10, keep=NULL, size, method='pearson') {
+            if (nlyr(x) == 1) stop("The Raster object should have at least two layers!")
+            if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
+            if (missing(size)) {
+              if (ncell(x) < 7000) size <- NULL
+              else size <- 5000
+            }
+            
+            if (missing(keep)) keep <- NULL
+            #-----------
+            
+            if (is.null(size)) x <- as.data.frame(x,na.rm=TRUE)
+            else x <- spatSample(x,size,na.rm=TRUE)
+            
+            x <- na.omit(x)
+            
+            vn <- colnames(x)
+            
+            if (!is.null(keep)) {
+              if (is.numeric(keep)) {
+                .w <- keep %in% c(1:length(vn))
+                if (all(!.w)) stop(paste0('the values in keep are out of range; should be between 1 and ',ncol(x),' for your dataset...!'))
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of layer numbers in keep are out of range (should be between 1 and nlyr(x)), so they are ignored!')
+                }
+              keep <- vn[keep]
+              } else if (is.character(keep)) {
+                .w <- keep %in% colnames(x)
+                if (all(!.w)) stop('None of the variable names in keep are available in x dataset!')
+                if (any(!.w)) {
+                  keep <- keep[.w]
+                  warning('some of the variable names in keep are not available in x (check if it is typos), so they are ignored!')
+                }
+              }
+            }
+            #----------------
+            LOOP <- TRUE
+            n <- new("VIF")
+            n@variables <- colnames(x)
+            exc <- c()
+            if (is.null(keep)) {
+              while (LOOP) {
+                v <- .vif(x)
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
+            } else {
+              while (LOOP) {
+                v <- .vif(x)
+                v <- v[!names(v) %in% keep]
+                if (v[which.max(v)] >= th) {
+                  ex <- names(v[which.max(v)])
+                  exc <- c(exc,ex)
+                  x <- x[,-which(colnames(x) == ex)]
+                } else LOOP=FALSE
+              }
+            }
+            
+            if (length(exc) > 0) n@excluded <- exc
+            v <- .vif(x)
+            n@corMatrix <- cor(x, method=method)
+            n@results <- data.frame(Variables=names(v),VIF=as.vector(v))
+            n
+          }
+)
+
+
 

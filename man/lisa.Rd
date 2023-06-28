@@ -25,6 +25,8 @@ lisa(x, y, d1=0, d2, cell, statistic="I")
 }
 \details{
 This function can calculate different LISA statistics at each grid cell in Raster object. The statistics, implemented in this function, include local Moran's I ("I"), local Geary's c ("c"), local G and G* ("G" and "G*"), and local K1 statistics. This function returns standardized value (Z) for Moran, G and G*, and K1 statistics. If a \code{SpatialPoints} or a vector of numbers is defined for \code{y} or \code{cell}, the LISA is calculated only for the specified locations by points or cells.
+
+NOTE: These functions are also implemented in the package "elsa", developed by the author of this package, which is faster as they are written in C.
 }
 
 \value{
