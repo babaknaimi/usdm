@@ -3,12 +3,14 @@
 \alias{exclude}
 \alias{exclude,RasterStack,VIF-method}
 \alias{exclude,RasterBrick,VIF-method}
+\alias{exclude,SpatRaster,VIF-method}
 \alias{exclude,data.frame,VIF-method}
 \alias{exclude,matrix,VIF-method}
 \alias{exclude,RasterStack,missing-method}
 \alias{exclude,RasterBrick,missing-method}
 \alias{exclude,data.frame,missing-method}
 \alias{exclude,matrix,missing-method}
+\alias{exclude,SpatRaster,missing-method}
 
 \title{Excluding variables specified in a VIF object}
 

@@ -1,17 +1,18 @@
 # Author: Babak Naimi, naimi.b@gmail.com
 # Date :  Oct. 2019
 # Last update: June 2023
-# Version 1.5
+# Version 1.6
 # Licence GPL v3
 
-.vif <- function(y) {
-  z<-rep(NA,ncol(y))
-  names(z) <- colnames(y)
-  for (i in 1:ncol(y)) {
-    z[i] <-  1/(1-summary(lm(y[,i]~.,data=y[-i]))$r.squared)
+.vif <- function(.dd) {
+  z<-rep(NA,ncol(.dd))
+  names(z) <- colnames(.dd)
+  for (i in 1:ncol(.dd)) {
+    z[i] <-  1 / (1 - summary(lm(.dd[,i]~.,data=.dd[-i]))$r.squared)
   }
   return(z)
 }
+
 
 .vif2 <- function(y,w) {
   z<-rep(NA,length(w))
