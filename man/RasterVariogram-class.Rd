@@ -11,6 +11,7 @@
 \description{
 
 An object of the \code{RasterVariogram} class contains information about the empirical variogram of a raster data. The object can be created with the function:  \code{\link[usdm]{Variogram}}.
+
 }
 
 \section{Slots}{
@@ -26,7 +27,9 @@ Slots for speciesLISA object:
 
 \author{Babak Naimi \email{naimi@r-gis.net}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 \examples{

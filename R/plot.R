@@ -1,7 +1,7 @@
 # Author: Babak Naimi, naimi.b@gmail.com
 # Date :  Sep. 2012
-# Last Update :  June 2023
-# Version 1.2
+# Last Update :  July 2023
+# Version 1.4
 # Licence GPL v3
 
 .level <- function(levels) {
@@ -19,40 +19,54 @@
   }
   levels
 }
+#====
+.bbox <- function(v) {
+  t(matrix(ext(v),2))
+}
+#----
+.coordinates <- function(x) {
+  geom(x)[,c('x','y')]
+}
+
 
 .plot.specisLISA <- function(x, y, cex=2,levels, xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
   op <- par(mar = par()$mar)
   
   par(mar=par()$mar + c(0,2,0,2))
   
+  if (!missing(y)) .bx <- .bbox(y)
+  else .bx <- .bbox(x@species)
+  
+  
+  
   orig.cex <- cex
-  if (!missing(y)) {
-    dx <- ((as.vector(bbox(y)[1,2]) - as.vector(bbox(y)[1,1])) * 0.04) /2
-    limx <-c(as.vector(bbox(y)[1,1]) - dx,as.vector(bbox(y)[1,2])+dx) 
-    dy <- ((as.vector(bbox(y)[2,2]) - as.vector(bbox(y)[2,1])) * 0.04) /2
-    limy <-c(as.vector(bbox(y)[2,1]) - dy, as.vector(bbox(y)[2,2])+dy)
-    
-    plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
-  }
-  else {
-    dx <- ((as.vector(bbox(x@species)[1,2]) - as.vector(bbox(x@species)[1,1])) * 0.1) /2
-    limx <-c(as.vector(bbox(x@species)[1,1]) - dx,as.vector(bbox(x@species)[1,2])+dx) 
-    dy <- ((as.vector(bbox(x@species)[2,2]) - as.vector(bbox(x@species)[2,1])) * 0.1) /2
-    limy <-c(as.vector(bbox(x@species)[2,1]) - dy,as.vector(bbox(x@species)[2,2])+dy)
-    
-    plot(0,0,xlim=limx,ylim=limy,xlab="X Coordinate",ylab="Y Coordinate",main=main)
-  }
+  
+  dx <- ((as.vector(.bx[1,2]) - as.vector(.bx[1,1])) * 0.04) /2
+  limx <-c(as.vector(.bx[1,1]) - dx,as.vector(.bx[1,2])+dx) 
+  dy <- ((as.vector(.bx[2,2]) - as.vector(.bx[2,1])) * 0.04) /2
+  limy <-c(as.vector(.bx[2,1]) - dy, as.vector(.bx[2,2])+dy)
+  
+  plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  
+  # if (!missing(y)) {
+  #   plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  # } else {
+  #   plot(0,0,xlim=limx,ylim=limy,xlab="X Coordinate",ylab="Y Coordinate",main=main)
+  # }
   cx <- rep(NA,length(x@LISA))
   cx <- ifelse(x@LISA <= levels[1] | x@LISA >= levels[length(levels)],cex,cx)
   cx.d <- (cex - 0.5) / trunc(length(levels)/2)
+  
   for(i in 2:(trunc(length(levels)/2)+1)) {
     cex <-  cex - cx.d
     cx <- ifelse((x@LISA > levels[i-1] & x@LISA <= levels[i]) | (x@LISA >= levels[length(levels)+1-i] & x@LISA < levels[length(levels)+2-i]),cex,cx)
   }
   pch <- ifelse(x@LISA >= 0,16,1)
-  xy <- coordinates(x@species)
+  xy <- .coordinates(x@species)
   points(xy[,1],xy[,2],cex=cx,pch=pch)
-  if (!missing(y)) plot(y,add=T)
+  #plot(x@species,cex=cx,pch=pch,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  
+  if (!missing(y)) plot(y,add=TRUE)
   
   txt <- paste("< ",levels[1],sep="")
   for (i in 2:length(levels)) txt <- c(txt,paste(levels[i-1]," : ",levels[i],sep=''))
@@ -72,6 +86,120 @@
   legend(xyLegend[1],xyLegend[2],legend=txt,pt.cex=cx,pch=pch,title='LISA')
   par(op)
 }
+#====
+
+
+.plot.specisLISA.t <- function(x, y, cex=2,levels, xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
+  op <- par(mar = par()$mar)
+  
+  par(mar=par()$mar + c(0,2,0,2))
+  
+  if (!missing(y)) .bx <- .bbox(y)
+  else .bx <- .bbox(x@species)
+  
+  
+  
+  orig.cex <- cex
+  
+  dx <- ((as.vector(.bx[1,2]) - as.vector(.bx[1,1])) * 0.2)
+  limx <-c(as.vector(.bx[1,1]) - (dx/2),as.vector(.bx[1,2])+dx) 
+  dy <- ((as.vector(.bx[2,2]) - as.vector(.bx[2,1])) * 0.2) /2
+  limy <-c(as.vector(.bx[2,1]) - dy, as.vector(.bx[2,2]))
+  
+  #plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  
+  # if (!missing(y)) {
+  #   plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  # } else {
+  #   plot(0,0,xlim=limx,ylim=limy,xlab="X Coordinate",ylab="Y Coordinate",main=main)
+  # }
+  cx <- rep(NA,length(x@LISA))
+  cx <- ifelse(x@LISA <= levels[1] | x@LISA >= levels[length(levels)],cex,cx)
+  cx.d <- (cex - 0.5) / trunc(length(levels)/2)
+  
+  for(i in 2:(trunc(length(levels)/2)+1)) {
+    cex <-  cex - cx.d
+    cx <- ifelse((x@LISA > levels[i-1] & x@LISA <= levels[i]) | (x@LISA >= levels[length(levels)+1-i] & x@LISA < levels[length(levels)+2-i]),cex,cx)
+  }
+  pch <- ifelse(x@LISA >= 0,16,1)
+  #xy <- .coordinates(x@species)
+  #points(xy[,1],xy[,2],cex=cx,pch=pch)
+  plot(x@species,cex=cx,pch=pch,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+  
+  if (!missing(y)) plot(y,add=TRUE)
+  
+  txt <- paste("< ",levels[1],sep="")
+  for (i in 2:length(levels)) txt <- c(txt,paste(levels[i-1]," : ",levels[i],sep=''))
+  txt <- c(txt,paste("> ",levels[length(levels)],sep=''))
+  
+  cex <- orig.cex + cx.d
+  cx <- c()
+  while (cex != 0.5) {
+    cex <- cex - cx.d
+    cx <- c(cx,cex)
+  }
+  while (cex != (orig.cex+cx.d)) {
+    cx <- c(cx,cex)
+    cex <- cex + cx.d
+  }
+  pch <- c(rep(1,length(txt)/2),rep(16,length(txt)/2))
+  legend(xyLegend[1],xyLegend[2],legend=txt,pt.cex=cx,pch=pch,title='LISA')
+  par(op)
+}
+#====
+
+# .plot.specisLISA.t <- function(x, y, cex=2,levels, xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
+#   op <- par(mar = par()$mar)
+#   
+#   par(mar=par()$mar + c(0,2,0,2))
+#   
+#   orig.cex <- cex
+#   if (!missing(y)) {
+#     dx <- ((as.vector(.bbox(y)[1,2]) - as.vector(.bbox(y)[1,1])) * 0.04) /2
+#     limx <-c(as.vector(.bbox(y)[1,1]) - dx,as.vector(.bbox(y)[1,2])+dx) 
+#     dy <- ((as.vector(.bbox(y)[2,2]) - as.vector(.bbox(y)[2,1])) * 0.04) /2
+#     limy <-c(as.vector(.bbox(y)[2,1]) - dy, as.vector(.bbox(y)[2,2])+dy)
+#     
+#     plot(0,0,xlim=limx,ylim=limy,xlab=xlab,ylab=ylab,main=main)
+#   }
+#   else {
+#     dx <- ((as.vector(.bbox(x@species)[1,2]) - as.vector(.bbox(x@species)[1,1])) * 0.1) /2
+#     limx <-c(as.vector(.bbox(x@species)[1,1]) - dx,as.vector(.bbox(x@species)[1,2])+dx) 
+#     dy <- ((as.vector(.bbox(x@species)[2,2]) - as.vector(.bbox(x@species)[2,1])) * 0.1) /2
+#     limy <-c(as.vector(.bbox(x@species)[2,1]) - dy,as.vector(.bbox(x@species)[2,2])+dy)
+#     
+#     plot(0,0,xlim=limx,ylim=limy,xlab="X Coordinate",ylab="Y Coordinate",main=main)
+#   }
+#   cx <- rep(NA,length(x@LISA))
+#   cx <- ifelse(x@LISA <= levels[1] | x@LISA >= levels[length(levels)],cex,cx)
+#   cx.d <- (cex - 0.5) / trunc(length(levels)/2)
+#   for(i in 2:(trunc(length(levels)/2)+1)) {
+#     cex <-  cex - cx.d
+#     cx <- ifelse((x@LISA > levels[i-1] & x@LISA <= levels[i]) | (x@LISA >= levels[length(levels)+1-i] & x@LISA < levels[length(levels)+2-i]),cex,cx)
+#   }
+#   pch <- ifelse(x@LISA >= 0,16,1)
+#   xy <- .coordinates(x@species)
+#   points(xy[,1],xy[,2],cex=cx,pch=pch)
+#   if (!missing(y)) plot(y,add=TRUE)
+#   
+#   txt <- paste("< ",levels[1],sep="")
+#   for (i in 2:length(levels)) txt <- c(txt,paste(levels[i-1]," : ",levels[i],sep=''))
+#   txt <- c(txt,paste("> ",levels[length(levels)],sep=''))
+#   
+#   cex <- orig.cex + cx.d
+#   cx <- c()
+#   while (cex != 0.5) {
+#     cex <- cex - cx.d
+#     cx <- c(cx,cex)
+#   }
+#   while (cex != (orig.cex+cx.d)) {
+#     cx <- c(cx,cex)
+#     cex <- cex + cx.d
+#   }
+#   pch <- c(rep(1,length(txt)/2),rep(16,length(txt)/2))
+#   legend(xyLegend[1],xyLegend[2],legend=txt,pt.cex=cx,pch=pch,title='LISA')
+#   par(op)
+# }
 
 
 
@@ -84,8 +212,8 @@ if (!isGeneric("plot")) {
 
 setMethod("plot", signature(x='speciesLISA',y="SpatialPolygons"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
-            if (missing(xyLegend)) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
+            if (missing(xyLegend)) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.16,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * 0.25)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.16,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * 0.25)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            
@@ -96,8 +224,8 @@ setMethod("plot", signature(x='speciesLISA',y="SpatialPolygons"),
 
 setMethod("plot", signature(x='speciesLISA',y="SpatialPolygonsDataFrame"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
-            if (missing(xyLegend)) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(bbox(y)[1,2] - (bbox(y)[1,2]-bbox(y)[1,1]) * 0.16,bbox(y)[2,1] + (bbox(y)[2,2]-bbox(y)[2,1]) * 0.25)
+            if (missing(xyLegend)) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.16,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * 0.25)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.16,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * 0.25)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            
@@ -108,16 +236,38 @@ setMethod("plot", signature(x='speciesLISA',y="SpatialPolygonsDataFrame"),
 
 setMethod("plot", signature(x='speciesLISA',y="missing"), 
           function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
-            if (missing(xyLegend)) xyLegend <- c(bbox(x@species)[1,2] - (bbox(x@species)[1,2]-bbox(x@species)[1,1]) * 0.16,bbox(x@species)[2,1] + (bbox(x@species)[2,2]-bbox(x@species)[2,1]) * 0.25)
-            else if(length(xyLegend) != 2 || !inherits(xyLegend, 'numeric')) xyLegend <- c(bbox(x@species)[1,2] - (bbox(x@species)[1,2]-bbox(x@species)[1,1]) * 0.16,bbox(x@species)[2,1] + (bbox(x@species)[2,2]-bbox(x@species)[2,1]) * 0.25)
+            
+            if (missing(levels)) levels=c(0,3,6)
+            
+            .lc <- (length(levels) / 10)*1.5
+            
+            if (missing(xyLegend)) xyLegend <- c(.bbox(x@species)[1,2] - (.bbox(x@species)[1,2]-.bbox(x@species)[1,1]) * 0.16,.bbox(x@species)[2,1] + (.bbox(x@species)[2,2]-.bbox(x@species)[2,1]) * .lc)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend, 'numeric')) xyLegend <- c(.bbox(x@species)[1,2] - (.bbox(x@species)[1,2]-.bbox(x@species)[1,1]) * 0.16,.bbox(x@species)[2,1] + (.bbox(x@species)[2,2]-.bbox(x@species)[2,1]) * .lc)
             
             if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
             levels <- .level(levels)            
             
-            .plot.specisLISA(x=x,levels=levels,xyLegend=xyLegend,xlab=xlab,ylab=ylab, main=main, ...)
+            .plot.specisLISA.t(x=x,levels=levels,xyLegend=xyLegend,xlab=xlab,ylab=ylab, main=main, ...)
           }
 )
-
+#----
+setMethod("plot", signature(x='speciesLISA',y="SpatVector"), 
+          function(x,y,cex=2,levels=c(0,3,6), xyLegend, xlab="X Coordinates",ylab="Y Coordinates", main, ...) {
+            
+            if (missing(levels)) levels=c(0,3,6)
+            
+            .lc <- (length(levels) / 10)*1.5
+            
+            if (missing(xyLegend)) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.1,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * .lc)
+            else if(length(xyLegend) != 2 || !inherits(xyLegend,'numeric')) xyLegend <- c(.bbox(y)[1,2] - (.bbox(y)[1,2]-.bbox(y)[1,1]) * 0.16,.bbox(y)[2,1] + (.bbox(y)[2,2]-.bbox(y)[2,1]) * .lc)
+            
+            if (missing(main)) main <- "Impact of positional uncertainty based on LISA"
+            levels <- .level(levels)            
+            
+            .plot.specisLISA.t(x=x,y=y,levels=levels,xyLegend=xyLegend,xlab=xlab,ylab=ylab, main=main, ...)
+          }
+)
+#----
 setMethod("plot", signature(x='RasterVariogram'), 
           function(x,xlim,ylim,xlab,ylab,pch,col,main,cloud=FALSE,box=FALSE,...) {
             if (missing(xlim)) xlim <- c(0,x@lag*x@nlags)

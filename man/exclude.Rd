@@ -36,7 +36,9 @@ Before using this function, you should execute one of \code{vifstep} or \code{vi
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 
@@ -52,9 +54,9 @@ Naimi, B., Hamm, N.A.S., Groen, T.A., Skidmore, A.K., and Toxopeus, A.G.
 
 \examples{
 \dontrun{
-file <- system.file("external/spain.grd", package="usdm")
+file <- system.file("external/spain.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick object including 10 raster layers in Spain
+r <- rast(file) # reading a RasterBrick object including 10 raster layers in Spain
 
 r 
 

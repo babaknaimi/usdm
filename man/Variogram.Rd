@@ -2,6 +2,7 @@
 
 \alias{Variogram}
 \alias{Variogram,RasterLayer-method}
+\alias{Variogram,SpatRaster-method}
 
 
 \title{Empirical variogram for raster data}
@@ -23,6 +24,9 @@ Variogram(x, lag, cutoff, cells, size=100)
 }
 \details{
 Variograms are widely used for exploring spatial structure in a single variable. Formally, it is defined as half the expected squared difference (half the variance of the difference) in the variable value at a specific geographical separation. A variogram summarizes the spatial relations in the data, and can be used to understand within what range (distance) the data is spatially autocorrelated. Naimi et al. (2011) linked this range to the impact of positional uncertainty on the performance of species distribution models (SDMs). Based on that study, examining variogram to find the effective autocorrelation range in predictors gives insight into whether predictions by SDMs are likely to be affected by the uncertainty in the sample locations (see Naimi et al. 2011, for more information).
+
+
+Note: A similar function has been implemented in the \code{elsa} package by the author of this package, and since the computation part of elsa is written in C programming language, the function in elsa is much faster.
 }
 
 \value{
@@ -41,15 +45,17 @@ Naimi, B., Hamm, N.A.S., Groen, T.A., Skidmore, A.K., and Toxopeus, A.G.
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 
 \examples{
 \dontrun{
-file <- system.file("external/spain.grd", package="usdm")
+file <- system.file("external/spain.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick object including 10 raster layers in Spain
+r <- rast(file) # reading a RasterBrick object including 10 raster layers in Spain
 
 r 
 

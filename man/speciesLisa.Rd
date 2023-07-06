@@ -3,6 +3,7 @@
 \alias{speciesLisa}
 \alias{speciesLisa,Raster,SpatialPoints-method}
 \alias{speciesLisa,Raster,SpatialPointsDataFrame-method}
+\alias{speciesLisa,SpatRaster,SpatVector-method}
 
 \title{LISA in predictors at species occurrence locations}
 
@@ -40,30 +41,25 @@ Naimi, B., Hamm, N.A.S., Groen, T.A., Skidmore, A.K., and Toxopeus, A.G.
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 \seealso{ \code{\link[usdm]{lisa}}}
 
 \examples{
 \dontrun{
-file <- system.file("external/predictors.grd", package="usdm")
+file <- system.file("external/predictors.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick object including 4 rasters in the Netherlands
+r <- rast(file) # reading a RasterBrick object including 4 rasters in the Netherlands
 
 r 
 
 plot(r) # visualize the raster layers
 
-
-files.path <- system.file("external", package="usdm") # path to location of example files
-require(rgdal)
-sp <- readOGR(dsn=files.path,layer="species_nl") # reading species data (shapefile)
-
-# alternatively, to read species data you can use:
-require(maptools)
 sp.file <- system.file("external/species_nl.shp", package="usdm")
-sp <- readShapePoints(sp.file)
+sp <- vect(sp.file)
 
 
 splisa <- speciesLisa(x=r,y=sp,uncertainty=15000,weights=c(0.22,0.2,0.38,0.2))
@@ -72,7 +68,8 @@ splisa
 
 plot(splisa)
 
-bnd <- readOGR(dsn=files.path,layer="boundary") # reading the boundary map
+bnd.file <- system.file("external/boundary.shp", package="usdm")
+bnd <- vect(bnd.file) # reading the boundary map
 
 plot(splisa,bnd)
 }

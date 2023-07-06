@@ -37,15 +37,16 @@ Below are additional arguments:
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+\url{https://www.biogeoinformatics.org/}
 }
 
 \seealso{ \code{\link[usdm]{Variogram}}}
 
 \examples{
-file <- system.file("external/spain.grd", package="usdm")
+file <- system.file("external/spain.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick including 5 rasters (predictor variables)
+r <- rast(file) # reading a RasterBrick including 5 rasters (predictor variables)
 
 r 
 

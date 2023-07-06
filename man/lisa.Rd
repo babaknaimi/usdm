@@ -2,6 +2,8 @@
 
 \alias{lisa}
 \alias{lisa,Raster,missing-method}
+\alias{lisa,SpatRaster,missing-method}
+\alias{lisa,SpatRaster,SpatVector-method}
 \alias{lisa,Raster,SpatialPoints-method}
 \alias{lisa,Raster,SpatialPointsDataFrame-method}
 
@@ -26,7 +28,8 @@ lisa(x, y, d1=0, d2, cell, statistic="I")
 \details{
 This function can calculate different LISA statistics at each grid cell in Raster object. The statistics, implemented in this function, include local Moran's I ("I"), local Geary's c ("c"), local G and G* ("G" and "G*"), and local K1 statistics. This function returns standardized value (Z) for Moran, G and G*, and K1 statistics. If a \code{SpatialPoints} or a vector of numbers is defined for \code{y} or \code{cell}, the LISA is calculated only for the specified locations by points or cells.
 
-NOTE: These functions are also implemented in the package "elsa", developed by the author of this package, which is faster as they are written in C.
+Note: A set of similar functions have been implemented in the \code{elsa} package by the author of this package, and since the computation part of elsa is written in C programming language, the function in elsa is much faster.
+
 }
 
 \value{
@@ -50,7 +53,9 @@ Naimi, B., Hamm, N.A.S., Groen, T.A., Skidmore, A.K., and Toxopeus, A.G.
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 
@@ -58,9 +63,9 @@ Naimi, B., Hamm, N.A.S., Groen, T.A., Skidmore, A.K., and Toxopeus, A.G.
 \dontrun{
 
 
-file <- system.file("external/spain.grd", package="usdm")
+file <- system.file("external/spain.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick object including 10 rasters in Spain
+r <- rast(file) # reading a RasterBrick object including 10 rasters in Spain
 
 r
 

@@ -1,8 +1,9 @@
 # Author: Babak Naimi, naimi.b@gmail.com
 # Date :  March 2013
-# Version 1.2
+# Last Update: June 2023
+# Version 1.3
 # Licence GPL v3
-
+#----------
 
 
 .neighborRowCol <- function(x,cell,w) {
@@ -86,7 +87,50 @@
     return(xx)
   } else return(out)
 }
-
+#----
+# terra
+.localK.t<-function(x,d1=0,d2,cell) {
+  filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
+  if (length(filter) < 3) stop("d2 is less than resolution!")
+  xv <- x[1:ncell(x)][,1]
+  w <- which(!is.na(xv))
+  xv <- xv[w]
+  ras <- FALSE
+  if (missing(cell)) {
+    cell <-c(1:ncell(x))[w]
+    ras <- TRUE
+    xx <- rast(x)
+  }
+  nf <- ncol(filter)
+  n <- length(xv)
+  n1 <- n-1
+  n2 <- n-2
+  
+  x <- as.matrix(x,wide=TRUE)
+  .xt <- t(x)
+  out <- rep(NA,length(cell))
+  for (c in 1:length(cell)) {
+    xi <-  .xt[cell[c]]
+    if (!is.na(xi)) {
+      xn <- .neighborRowCol(x,cell[c],nf)
+      xn[,1] <- xn[,1] * as(filter,"vector")
+      xn <- na.omit(xn)
+      xn <- unlist(lapply(1:nrow(xn),function(r) {x[xn[r,1],xn[r,2]]}))
+      xn <- xn[!is.na(xn)]
+      zj <- xv - xi
+      Di <- sum(abs(zj))/n1
+      Wi <- length(xn)
+      Ki <- sum(abs(xi-xn))
+      Fi <- sum(zj*zj)/n1
+      VKi <- Wi*(n1-Wi) * (Fi-Di*Di) / n2
+      out[c] <- (Ki - Wi*Di) / sqrt(VKi)
+    } else out[c] <- NA
+  }
+  if (ras) {
+    xx[cell] <- out
+    return(xx)
+  } else return(out)
+}
 
 
 
@@ -129,7 +173,49 @@
     return(xx)
   } else return(out)
 }
+#---
 
+.localGeary.t <- function(x,d1=0,d2,cell) {
+  filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
+  if (length(filter) < 3) stop("d2 is less than resolution!")
+  sigmaX <- global(x,"sum")[1,1]
+  i <- trunc(length(filter)/2)+1
+  ras <- FALSE
+  if (missing(cell)) {
+    w <- which(!is.na(x[1:ncell(x)]))
+    n <- length(w)
+    cell <-c(1:ncell(x))[w]
+    rm(w)
+    ras <- TRUE
+    xx <- rast(x)
+  } else n <- ncell(x) - global(x,"isNA")[1,1]
+  nf <- ncol(filter)
+  n1 <- n-1
+  s2 <- global(x,"sd")[1,1]
+  s2 <- (s2 * s2 * n1)/n
+  x <- as.matrix(x,wide=TRUE)
+  .xt <- t(x)
+  out <- rep(NA,length(cell))
+  for (c in 1:length(cell)) {
+    xi <-  .xt[cell[c]]
+    if (!is.na(xi)) {
+      xn <- .neighborRowCol(x,cell[c],nf)
+      xn[,1] <- xn[,1] * as(filter,"vector")
+      xn <- na.omit(xn)
+      xn <- unlist(lapply(1:nrow(xn),function(r) {x[xn[r,1],xn[r,2]]}))
+      xn <- xn[!is.na(xn)]
+      Eij <- sum((xi - xn)^2)
+      out[c] <- Eij / s2
+      
+    } else out[c] <- NA
+  }
+  
+  if (ras) {
+    xx[cell] <- out
+    return(xx)
+  } else return(out)
+}
+#---
 .localG <- function(x,d1=0,d2,cell) {
   filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
   if (length(filter) < 3) stop("d2 is less than resolution!")
@@ -175,7 +261,54 @@
     return(xx)
   } else return(out)
 }
-
+#---
+.localG.t <- function(x,d1=0,d2,cell) {
+  filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
+  if (length(filter) < 3) stop("d2 is less than resolution!")
+  sigmaX <- global(x,"sum")[1,1]
+  sigmaX2 <- global(x^2,"sum")[1,1]
+  i <- trunc(length(filter)/2)+1
+  ras <- FALSE
+  if (missing(cell)) {
+    w <- which(!is.na(x[1:ncell(x)]))
+    n <- length(w)
+    cell <-c(1:ncell(x))[w]
+    rm(w)
+    ras <- TRUE
+    xx <- rast(x)
+  } else n <- ncell(x) - global(x,"isNA")[1,1]
+  nf <- ncol(filter)
+  n1 <- n - 1
+  n2 <- n - 2
+  s2 <- global(x,'sd')[1,1]
+  s2 <- (s2 * s2 * n1)/n
+  x <- as.matrix(x,wide=TRUE)
+  .xt <- t(x)
+  out <- rep(NA,length(cell))
+  for (c in 1:length(cell)) {
+    xi <-  .xt[cell[c]]
+    if (!is.na(xi)) {
+      xn <- .neighborRowCol(x,cell[c],nf)
+      xn[,1] <- xn[,1] * as(filter,"vector")
+      xn <- na.omit(xn)
+      xn <- unlist(lapply(1:nrow(xn),function(r) {x[xn[r,1],xn[r,2]]}))
+      xn <- xn[!is.na(xn)]
+      s.xi <- sum(xn)
+      xbar.i <- (sigmaX - xi)/n1
+      Wi <- length(xn)
+      si <- sqrt(((sigmaX2 - xi^2) / n1) - xbar.i^2)
+      G <- (s.xi - Wi * xbar.i) / (si * sqrt(((n1*Wi) - Wi^2) / n2))
+      out[c] <- G
+      
+    } else out[c] <- NA
+  }
+  
+  if (ras) {
+    xx[cell] <- out
+    return(xx)
+  } else return(out)
+}
+#---
 
 .localMoran <- function(x,d1=0,d2,cell) {
   filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
@@ -230,7 +363,63 @@
     return(xx)
   } else return(out)
 }
+#---
 
+.localMoran.t <- function(x,d1=0,d2,cell) {
+  filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
+  if (length(filter) < 3) stop("d2 is less than resolution!")
+  xv <- x[1:ncell(x)][,1]
+  w <- which(!is.na(xv))
+  xv <- xv[w]
+  i <- trunc(length(filter)/2)+1
+  ras <- FALSE
+  if (missing(cell)) {
+    cell <-c(1:ncell(x))[w]
+    ras <- TRUE
+    xx <- rast(x)
+  } 
+  nf <- ncol(filter)
+  n <- length(xv)
+  n1 <- n-1
+  n2 <- n-2
+  sigmaX <- sum(xv)
+  sigmaX2 <- sum(xv * xv)
+  
+  s2 <- var(xv)
+  s2 <- (s2 * n1)/n
+  s4 <- sum((xv - mean(xv))^4)/n
+  rm(xv,w)
+  b2 <- s4 / (s2 ^ 2)
+  x <- as.matrix(x,wide=TRUE)
+  .xt <- t(x)
+  out <- rep(NA,length(cell))
+  for (c in 1:length(cell)) {
+    xi <-  .xt[cell[c]]
+    if (!is.na(xi)) {
+      xn <- .neighborRowCol(x,cell[c],nf)
+      xn[,1] <- xn[,1] * as(filter,"vector")
+      xn <- na.omit(xn)
+      xn <- unlist(lapply(1:nrow(xn),function(r) {x[xn[r,1],xn[r,2]]}))
+      xn <- xn[!is.na(xn)]
+      s.x <- (sigmaX-xi)
+      xbar= s.x / n1
+      s <- ((sigmaX2 - xi * xi) - (s.x * s.x / n1)) / n1
+      z <- xn- xbar
+      lz <- sum(z)
+      Ii <- ((xi-xbar) / s) * lz
+      Wi <- length(xn)
+      EI <- -Wi/n1
+      VarI <- (Wi * (n - b2) / n1) + (Wi^2 * ((2*b2 - n) / (n1*n2))) - (Wi / n1^2)
+      out[c] <- (Ii - EI) / sqrt(VarI)
+    } else out[c] <- NA
+  }
+  
+  if (ras) {
+    xx[cell] <- out
+    return(xx)
+  } else return(out)
+}
+#---
 .localG2 <- function(x,d1=0,d2,cell) {
   filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
   if (length(filter) < 3) stop("d2 is less than resolution!")
@@ -256,6 +445,54 @@
   out <- rep(NA,length(cell))
   for (c in 1:length(cell)) {
     xi <-  t(x)[cell[c]]
+    if (!is.na(xi)) {
+      xn <- .neighborRowCol(x,cell[c],nf)
+      xn[,1] <- xn[,1] * as(filter,"vector")
+      xn <- na.omit(xn)
+      xn <- unlist(lapply(1:nrow(xn),function(r) {x[xn[r,1],xn[r,2]]}))
+      xn <- xn[!is.na(xn)]
+      s.xi <- sum(xn) + xi
+      
+      Wi <- length(xn)+1
+      
+      G <- (s.xi - Wi * xbar) / (si * sqrt(((n*Wi) - Wi^2) / n1))
+      out[c] <- G
+      
+    } else out[c] <- NA
+  }
+  
+  if (ras) {
+    xx[cell] <- out
+    return(xx)
+  } else return(out)
+}
+#---
+.localG2.t <- function(x,d1=0,d2,cell) {
+  filter<-.filter(r=res(x)[1],d1=d1,d2=d2)
+  if (length(filter) < 3) stop("d2 is less than resolution!")
+  sigmaX <- global(x,"sum")[1,1]
+  sigmaX2 <- global(x^2,"sum")[1,1]
+  i <- trunc(length(filter)/2)+1
+  ras <- FALSE
+  if (missing(cell)) {
+    w <- which(!is.na(x[1:ncell(x)]))
+    n <- length(w)
+    cell <-c(1:ncell(x))[w]
+    rm(w)
+    ras <- TRUE
+    xx <- rast(x)
+  } else n <- ncell(x) - global(x,"isNA")[1,1]
+  nf <- ncol(filter)
+  n1 <- n - 1
+  n2 <- n - 2
+  xbar <- sigmaX / n
+  s2 <- (sigmaX2 / n) - (xbar ^ 2)
+  si <- sqrt(s2)
+  x <- as.matrix(x,wide=TRUE)
+  .xt <- t(x)
+  out <- rep(NA,length(cell))
+  for (c in 1:length(cell)) {
+    xi <-  .xt[cell[c]]
     if (!is.na(xi)) {
       xn <- .neighborRowCol(x,cell[c],nf)
       xn[,1] <- xn[,1] * as(filter,"vector")
@@ -399,3 +636,100 @@ setMethod('lisa', signature(x='Raster',y='SpatialPointsDataFrame'),
             
           }
 )
+#--------
+
+setMethod('lisa', signature(x='SpatRaster',y='missing'), 
+          function(x, y, d1=0, d2, cell, statistic="I") {
+            if (!statistic %in% c("K1","I","G","G*","C","k1","i","c","g","g*")) stop("statistic should be one of K1, I, G, G*, and C")
+            if (nlyr(x) == 1) {
+              if (missing(cell)) {
+                if (statistic == "K1" | statistic == "k1") return(.localK.t(x,d1=d1,d2=d2))
+                if (statistic == "I" | statistic == "i") return(.localMoran.t(x,d1=d1,d2=d2))
+                if (statistic == "G" | statistic == "g") return(.localG.t(x,d1=d1,d2=d2))
+                if (statistic == "G*" | statistic == "g*") return(.localG2.t(x,d1=d1,d2=d2))
+                if (statistic == "C" | statistic == "c") return(.localGeary.t(x,d1=d1,d2=d2))
+              } else {
+                if (statistic == "K1" | statistic == "k1") return(.localK.t(x,d1=d1,d2=d2,cell=cell))
+                if (statistic == "I" | statistic == "i") return(.localMoran.t(x,d1=d1,d2=d2,cell=cell))
+                if (statistic == "G" | statistic == "g") return(.localG.t(x,d1=d1,d2=d2,cell=cell))
+                if (statistic == "G*" | statistic == "g*") return(.localG2.t(x,d1=d1,d2=d2,cell=cell))
+                if (statistic == "C" | statistic == "c") return(.localGeary.t(x,d1=d1,d2=d2,cell=cell))
+              }
+            } else {
+              if (missing(cell)) {
+                
+                if (statistic == "K1" | statistic == "k1") {
+                  out <- .localK.t(x[[1]],d1=d1,d2=d2)
+                  for (i in 2:nlyr(x)) out <- c(out,.localK.t(x[[i]],d1=d1,d2=d2))
+                  names(out) <- paste(statistic," _statistic_for_",names(x),sep="")
+                  out <- brick(out)
+                }
+                if (statistic == "I" | statistic == "i") { 
+                  out <- .localMoran.t(x[[1]],d1=d1,d2=d2)
+                  for (i in 2:nlyr(x)) out <- c(out,.localMoran.t(x[[i]],d1=d1,d2=d2))
+                  names(out) <- paste(statistic," _statistic_for_",names(x),sep="")
+                  out <- brick(out)
+                }
+                if (statistic == "G" | statistic == "g") {
+                  out <- .localG.t(x[[1]],d1=d1,d2=d2)
+                  for (i in 2:nlyr(x)) out <- c(out,.localG.t(x[[i]],d1=d1,d2=d2))
+                  names(out) <- paste(statistic," _statistic_for_",names(x),sep="")
+                  out <- brick(out)
+                }
+                if (statistic == "G*" | statistic == "g*") {
+                  out <- .localG2.t(x[[1]],d1=d1,d2=d2)
+                  for (i in 2:nlyr(x)) out <- c(out,.localG2.t(x[[i]],d1=d1,d2=d2))
+                  names(out) <- paste(statistic," _statistic_for_",names(x),sep="")
+                  out <- brick(out)
+                }
+                if (statistic == "C" | statistic == "c") {
+                  out <- .localGeary.t(x[[1]],d1=d1,d2=d2)
+                  for (i in 2:nlyr(x)) out <- addLayer(out,.localGeary.t(x[[i]],d1=d1,d2=d2))
+                  names(out) <- paste(statistic," _statistic_for_",names(x),sep="")
+                  out <- brick(out)
+                }
+              } else {
+                out <- matrix(nrow=length(cell),ncol=nlyr(x))
+                colnames(out) <- names(x)
+                rownames(out) <- cell
+                if (statistic == "K1" | statistic == "k1") for (i in 1:nlyr(x)) out[,i] <- .localK.t(x[[i]],d1=d1,d2=d2,cell=cell)
+                if (statistic == "I" | statistic == "i") for (i in 1:nlyr(x)) out[,i] <- .localMoran.t(x[[i]],d1=d1,d2=d2,cell=cell)
+                if (statistic == "G" | statistic == "g") for (i in 1:nlyr(x)) out[,i] <- .localG.t(x[[i]],d1=d1,d2=d2,cell=cell)
+                if (statistic == "G*" | statistic == "g*") for (i in 1:nlyr(x)) out[,i] <- .localG2.t(x[[i]],d1=d1,d2=d2,cell=cell)
+                if (statistic == "C" | statistic == "c") for (i in 1:nlyr(x)) out[,i] <- .localGeary.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              }
+              out
+            }
+            
+          }
+)
+#-----
+
+setMethod('lisa', signature(x='SpatRaster',y='SpatVector'), 
+          function(x, y, d1=0, d2, cell, statistic="I") {
+            if (!statistic %in% c("K1","I","G","G*","C")) stop("statistic should be one of K1, I, G, G*, and C")
+            
+            xy <- geom(y)[,c('x','y')]
+            cell <- cellFromXY(x,xy)
+            
+            if (nlyr(x) == 1) {
+              if (statistic == "K1" | statistic == "k1") return(.localK.t(x,d1=d1,d2=d2,cell=cell))
+              if (statistic == "I" | statistic == "i") return(.localMoran.t(x,d1=d1,d2=d2,cell=cell))
+              if (statistic == "G" | statistic == "g") return(.localG.t(x,d1=d1,d2=d2,cell=cell))
+              if (statistic == "G*" | statistic == "g*") return(.localG2.t(x,d1=d1,d2=d2,cell=cell))
+              if (statistic == "C" | statistic == "c") return(.localGeary.t(x,d1=d1,d2=d2,cell=cell))
+            } else {
+              out <- matrix(nrow=length(cell),ncol=nlyr(x))
+              colnames(out) <- names(x)
+              rownames(out) <- cell
+              if (statistic == "K1" | statistic == "k1") for (i in 1:nlyr(x)) out[,i] <- .localK.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              if (statistic == "I" | statistic == "i") for (i in 1:nlyr(x)) out[,i] <- .localMoran.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              if (statistic == "G" | statistic == "g") for (i in 1:nlyr(x)) out[,i] <- .localG.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              if (statistic == "G*" | statistic == "g*") for (i in 1:nlyr(x)) out[,i] <- .localG2.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              if (statistic == "C" | statistic == "c") for (i in 1:nlyr(x)) out[,i] <- .localGeary.t(x[[i]],d1=d1,d2=d2,cell=cell)
+              out
+            }
+            
+          }
+)
+#--------

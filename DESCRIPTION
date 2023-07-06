@@ -1,11 +1,12 @@
 Package: usdm
 Type: Package
 Title: Uncertainty Analysis for Species Distribution Models
-Version: 2.1-3
-Date: 2023-06-28
+Version: 2.1-6
+Date: 2023-07-07
 Author: Babak Naimi
-Depends: methods, sp, raster, terra
+Depends: methods, terra
+Imports: raster
 Maintainer: Babak Naimi <naimi.b@gmail.com>
 Description: This is a framework that aims to provide methods and tools for assessing the impact of different sources of uncertainties (e.g.positional uncertainty) on performance of species distribution models (SDMs).)
 License: GPL (>= 3)
-URL: http://r-gis.net
+URL: https://r-gis.net/

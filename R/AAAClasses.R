@@ -3,9 +3,10 @@
 # Version 1.0
 # Licence GPL v3
 
+#setClassUnion("spoint", c("SpatVector","SpatialPoints")) 
 
 setClass("speciesLISA",
-         representation(species="SpatialPoints",
+         representation(species="SpatVector",
                         data="data.frame",
                         LISAs="matrix",
                         weights="numeric",

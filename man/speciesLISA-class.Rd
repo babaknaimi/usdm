@@ -3,10 +3,12 @@
 \docType{class}
 
 \alias{speciesLISA-class}
+\alias{spoint-class}
 
 \alias{print,speciesLISA-method}
 
 \title{ speciesLISA class}
+
 
 \description{
 
@@ -28,7 +30,9 @@ Slots for speciesLISA object:
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 \examples{

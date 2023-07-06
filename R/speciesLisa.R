@@ -27,7 +27,7 @@ setMethod('speciesLisa', signature(x='Raster',y='SpatialPoints'),
             } else {
               o <- lisa(x=x,y=y,d1=0,d2=uncertainty,statistic=statistic)
               n <- new("speciesLISA")
-              n@species <- y
+              n@species <- vect(y)
               n@LISAs <- o
               n@weights <- NA
               n@statistic <- statistic
@@ -56,7 +56,7 @@ setMethod('speciesLisa', signature(x='Raster',y='SpatialPointsDataFrame'),
             } else {
               o <- lisa(x=x,y=y,d1=0,d2=uncertainty,statistic=statistic)
               n <- new("speciesLISA")
-              n@species <- as(y,"SpatialPoints")
+              n@species <- vect(y)
               n@data <- as(y,'data.frame')
               n@LISAs <- o
               n@statistic <- statistic
@@ -66,3 +66,35 @@ setMethod('speciesLisa', signature(x='Raster',y='SpatialPointsDataFrame'),
             n
           }
 )
+#----
+
+setMethod('speciesLisa', signature(x='SpatRaster',y='SpatVector'), 
+          function(x, y, uncertainty, statistic="K1",weights) {
+            if (nlyr(x) > 1) {
+              if (missing(weights)) weights <- rep(1/nlyr(x),nlyr(x))
+              else if (length(weights) != nlyr(x)) stop("the length of weights should be equal to the number of layers in the raster object")
+              
+              weights <- weights/sum(weights)
+              o <- lisa(x=x,y=y,d1=0,d2=uncertainty,statistic=statistic)
+              n <- new("speciesLISA")
+              n@species <- y
+              n@data <- as(y,'data.frame')
+              n@LISAs <- o
+              n@weights <- weights
+              n@statistic <- statistic
+              for (i in 1:length(weights)) o[,i] <- o[,i] * weights[i]
+              n@LISA <- apply(o,1,sum)
+            } else {
+              o <- lisa(x=x,y=y,d1=0,d2=uncertainty,statistic=statistic)
+              n <- new("speciesLISA")
+              n@species <- y
+              n@data <- as(y,'data.frame')
+              n@LISAs <- o
+              n@statistic <- statistic
+              n@weights <- NA
+              n@LISA <- o
+            }
+            n
+          }
+)
+

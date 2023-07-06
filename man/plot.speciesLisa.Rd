@@ -6,7 +6,7 @@
 \alias{plot,speciesLISA,missing-method}
 \alias{plot,speciesLISA,SpatialPolygons-method}
 \alias{plot,speciesLISA,SpatialPolygonsDataFrame-method}
-
+\alias{plot,speciesLISA,SpatVector-method}
 
 \title{Plot positional uncertainty based on LISA}
 
@@ -44,34 +44,36 @@ Below are additional arguments:
 
 \author{Babak Naimi \email{naimi.b@gmail.com}
 
-\url{http://r-gis.net}
+\url{https://r-gis.net/}
+
+\url{https://www.biogeoinformatics.org/}
 }
 
 \seealso{ \code{\link[usdm]{speciesLisa}}, \code{\link[usdm]{lisa}}}
 
 \examples{
-file <- system.file("external/predictors.grd", package="usdm")
+file <- system.file("external/predictors.tif", package="usdm")
 
-r <- brick(file) # reading a RasterBrick including 5 rasters (predictor variables)
+r <- rast(file) # reading a RasterBrick object including 4 rasters in the Netherlands
 
 r 
 
 plot(r) # visualize the raster layers
 
+sp.file <- system.file("external/species_nl.shp", package="usdm")
+sp <- vect(sp.file)
 
-#files.path <- system.file("external", package="usdm") # path to location of example files
-#require(rgdal)
-#sp <- readOGR(dsn=files.path,layer="species_nl") # reading species data (shapefile)
 
-#splisa <- speciesLisa(x=r,y=sp,uncertainty=15000,weights=c(0.22,0.2,0.38,0.2))
+splisa <- speciesLisa(x=r,y=sp,uncertainty=15000,weights=c(0.22,0.2,0.38,0.2))
 
-#splisa
+splisa
 
-#plot(splisa)
+plot(splisa)
 
-#bnd <- readOGR(dsn=files.path,layer="boundary") # reading the boundary map
+bnd.file <- system.file("external/boundary.shp", package="usdm")
+bnd <- vect(bnd.file) # reading the boundary map
 
-#plot(splisa,bnd)
+plot(splisa,bnd)
 
 #plot(splisa,bnd,levels=c(2,4,6,8))
 
