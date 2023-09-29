@@ -1,7 +1,7 @@
 # Author: Babak Naimi, naimi.b@gmail.com
 # Date :  Oct. 2019
-# Last update: June 2023
-# Version 1.6
+# Last update: September 2023
+# Version 1.7
 # Licence GPL v3
 
 .vif <- function(.dd) {
@@ -621,6 +621,8 @@ setMethod('vifstep', signature(x='data.frame'),
           function(x, th=10, keep=NULL, size, method='pearson') {
             if (ncol(x) == 1) stop("The data.frame should have at least two variables!")
             if (missing(method) || !method %in% c('pearson','kendall','spearman')) method <- 'pearson'
+            
+            x <- na.omit(x)
             
             if (missing(size)) {
               if (nrow(x) < 6000) size <- NULL
